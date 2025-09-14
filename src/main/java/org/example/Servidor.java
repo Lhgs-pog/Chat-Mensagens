@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Servidor {
     public static void main(String[] args) {
@@ -13,31 +15,53 @@ public class Servidor {
         //Porta do servidor
         int port = 12345;
 
+        //Executor que gerencia os threads(melhor prática já que vc não precisa criar manualmente)
+        ExecutorService pool = Executors.newCachedThreadPool();
+
         try(ServerSocket serve = new ServerSocket(port)){
             System.out.println("Servidor iniciado na porta: "+port);
 
-            //Espera um cliente se conectar
-            Socket socket = serve.accept();
-            System.out.println("Cliente conectado:" +socket.getInetAddress());
+            while (true){
+                //Espera um cliente se conectar
+                Socket socket = serve.accept();
+                System.out.println("Cliente conectado:" +socket.getInetAddress());
 
+                pool.execute(new AtenderCliente(socket));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+class AtenderCliente implements Runnable{
+
+    public Socket socket;
+
+    public AtenderCliente(Socket socket) {
+        this.socket = socket;
+    }
+
+    @Override
+    public void run() {
+
+
+        try (
             //Entrada
             BufferedReader input = new BufferedReader(
-                new InputStreamReader(socket.getInputStream())
+                    new InputStreamReader(socket.getInputStream())
             );
 
             //Saida
             PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
+        ) {
+            String mensagem;
+            while ((mensagem = input.readLine()) != null){
+                System.out.println("["+socket.getInetAddress()+"]: "+mensagem);
+                output.println("Eco: "+mensagem);
+            }
 
-
-            //Recebendo a mensagem do cliente
-            String mensagem = input.readLine();
-            System.out.println("Mensagem do cliente: "+mensagem);
-
-            //Respondendo a menssagem do cliente
-            output.println("Mensagem recebida: "+ mensagem);
-
-
-            socket.close(); //Encerra a conexão
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

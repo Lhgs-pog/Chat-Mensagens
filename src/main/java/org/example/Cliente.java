@@ -21,14 +21,22 @@ public class Cliente {
             PrintWriter saida = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+
+            new Thread(() -> {
+               try{
+                   String resposta;
+                   while((resposta = entrada.readLine()) != null){
+                       System.out.println("[Servidor]: "+resposta);
+                   }
+               } catch (IOException e) {
+                   throw new RuntimeException(e);
+               }
+            }).start();
+
             //Enviar mensagem
             System.out.println("Escreva uma mensagem: ");
             String mensagem = teclado.readLine();
             saida.println(mensagem);
-
-            //Receber resposta
-            String resposta = entrada.readLine();
-            System.out.println("O servidor respondeu: "+resposta);
 
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
