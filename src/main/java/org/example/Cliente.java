@@ -33,10 +33,12 @@ public class Cliente {
                }
             }).start();
 
-            //Enviar mensagem
+            //Loop para enviar mensagens
+            String mensagem;
             System.out.println("Escreva uma mensagem: ");
-            String mensagem = teclado.readLine();
-            saida.println(mensagem);
+            while ((mensagem = teclado.readLine()) != null){
+                saida.println(mensagem);
+            }
 
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);

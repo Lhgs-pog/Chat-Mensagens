@@ -6,10 +6,16 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Servidor {
+
+    //Lista de todos os clientes conectados
+    private static final Set<PrintWriter> clientes = ConcurrentHashMap.newKeySet();
+
     public static void main(String[] args) {
 
         //Porta do servidor
@@ -33,37 +39,53 @@ public class Servidor {
         }
     }
 
-}
+    static class AtenderCliente implements Runnable{
 
-class AtenderCliente implements Runnable{
+        private Socket socket;
+        private PrintWriter saida;
 
-    public Socket socket;
+        public AtenderCliente(Socket socket) {
+            this.socket = socket;
+        }
 
-    public AtenderCliente(Socket socket) {
-        this.socket = socket;
-    }
+        @Override
+        public void run() {
+            try (
+                //Entrada
+                BufferedReader entrada = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream())
+                );
+            ) {
 
-    @Override
-    public void run() {
+                //Saida
+                saida = new PrintWriter(socket.getOutputStream(), true);
+                clientes.add(saida);
 
+                String mensagem;
+                while ((mensagem = entrada.readLine()) != null){
+                    System.out.println("["+socket.getInetAddress()+"]: "+mensagem);
+                    enviarPAraTodos(mensagem);
+                }
 
-        try (
-            //Entrada
-            BufferedReader input = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream())
-            );
-
-            //Saida
-            PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
-        ) {
-            String mensagem;
-            while ((mensagem = input.readLine()) != null){
-                System.out.println("["+socket.getInetAddress()+"]: "+mensagem);
-                output.println("Eco: "+mensagem);
+            } catch (IOException e) {
+                System.out.println("Cliente desconectado: "+socket.getInetAddress());
+            } finally {
+                if (saida != null){
+                    clientes.remove(saida);
+                }
+                try{
+                    socket.close();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
             }
+        }
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        public void enviarPAraTodos(String mensagem){
+            for(PrintWriter cliente : clientes){
+                cliente.println(mensagem);
+            }
         }
     }
 }
+
