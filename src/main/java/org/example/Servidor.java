@@ -64,7 +64,7 @@ public class Servidor {
                 String mensagem;
                 while ((mensagem = entrada.readLine()) != null){
                     System.out.println("["+socket.getInetAddress()+"]: "+mensagem);
-                    enviarPAraTodos(mensagem);
+                    enviarPAraTodos("[" + socket.getInetAddress() + "]: " +mensagem, saida);
                 }
 
             } catch (IOException e) {
@@ -81,9 +81,10 @@ public class Servidor {
             }
         }
 
-        public void enviarPAraTodos(String mensagem){
+        public void enviarPAraTodos(String mensagem, PrintWriter remetente){
             for(PrintWriter cliente : clientes){
-                cliente.println(mensagem);
+                if (!cliente.equals(remetente))
+                    cliente.println(mensagem);
             }
         }
     }
